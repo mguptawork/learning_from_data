@@ -29,10 +29,10 @@ def create_random_points(count):
     '''random points in a list of length count'''
     return [Point(random.uniform(-1, 1), random.uniform(-1, 1)) for _ in range(count)]
 
-def create_known_data_points():
+def create_known_data_points(number_of_points):
     '''data_points with solution list and also the parameters of the soln'''
     target_function, soln_parameters = create_target_function()
-    known_points = create_random_points(1000)
+    known_points = create_random_points(number_of_points)
     known_data_points = list(zip(known_points, map(target_function, known_points)))
     return known_data_points, soln_parameters
 
@@ -44,16 +44,37 @@ def normalize_parameters(parms):
     '''
     normalize parameters
     '''
-    w_y, w_x, w_0 = parameters
+    w_y, w_x, w_0 = parms
     determinant = w_y*w_y + w_x*w_x + w_0*w_0
     if determinant == 0:
         return (parms)
     else:
         return (w_y/determinant, w_x/determinant, w_0/determinant)
 
+def print_points(parms, known_data_points):
+    '''
+    print points and target match
+    '''
+    perceptron = functools.partial(apply_perceptron, parms)
+    for point, target in known_data_points:
+        print(point, target, perceptron(point))
+
+def calculate_accuracy(soln_parms, guess_parms, number_of_points=1000):
+    '''
+    calculate accuracy of soln vs pla guess
+    '''
+    known_perceptron = functools.partial(apply_perceptron, soln_parms)
+    guess_perceptron = functools.partial(apply_perceptron, guess_parms)
+    random_points = create_random_points(number_of_points)
+    incorrect = 0
+    for point in random_points:
+        if known_perceptron(point)!= guess_perceptron(point):
+            incorrect += 1
+    return incorrect/float(number_of_points)
+
 def main():
     '''a function that creates goal points and then finds a match'''
-    known_data_points, soln_parameters = create_known_data_points()
+    known_data_points, soln_parameters = create_known_data_points(100)
     # print(known_data_points, soln_parameters)
 
     parms = [0,0,0]
@@ -71,8 +92,14 @@ def main():
         count += 1
 
     print(count)
-    print(parms)
-    print(soln_parameters)
+    print(normalize_parameters(parms))
+    print(normalize_parameters(soln_parameters))
+    print(calculate_accuracy(soln_parameters,parms,1000))
+    # print("soln_parameters")
+    # print_points(soln_parameters, known_data_points)
+    # print("pla solution")
+    # print_points(parms, known_data_points)
+
 
 if __name__ == '__main__':
     main()
