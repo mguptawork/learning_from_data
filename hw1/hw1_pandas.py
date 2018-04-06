@@ -12,12 +12,11 @@ sign = lambda x: (1, -1)[x < 0]
 
 def create_target_function():
     '''Create a function which classifies points according to the ideal target function'''
-    series1 = create_random_df(1)
-    series2 = create_random_df(1)
+    two_points = create_random_df(2)
 
-    w_y = series1.values[0][1] - series2.values[0][1]
-    w_x = series2.values[0][2] - series1.values[0][2]
-    w_0 = series1.values[0][2] * (series1.values[0][1] +series2.values[0][1]) - series1.values[0][1] * (series1.values[0][2] + series2.values[0][2])
+    w_y = two_points[1][0] - two_points[1][1]
+    w_x = two_points[0][1] - two_points[0][0]
+    w_0 = two_points[0][0] * (two_points[1][0] + two_points[1][1]) - two_points[1][0] * (two_points[0][0] + two_points[0][1])
 
     soln_parameters = pandas.Series([w_0, w_x, w_y])
 
@@ -29,11 +28,8 @@ def create_target_function():
 
 def create_random_df(count):
     '''random panda series valid for 2 dimensions'''
-    return pandas.DataFrame([pandas.Series([1, random.uniform(-1, 1), random.uniform(-1, 1)]) for _ in range(count)])
-
-def create_random_points(count):
-    '''random points in a list of length count'''
-    return [Point(random.uniform(-1, 1), random.uniform(-1, 1)) for _ in range(count)]
+    number_of_dimensions = 2
+    return pandas.DataFrame(numpy.random.uniform(-1,1,(count,number_of_dimensions)))
 
 def create_known_data_points(number_of_points):
     '''data_points with solution list and also the parameters of the soln'''
