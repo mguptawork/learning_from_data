@@ -1,3 +1,4 @@
+#!/home/mayank/anaconda3/bin/python3
 #!/usr/bin/python3
 '''Module to solve problem 7 in hw 1 of learning from data'''
 import random
@@ -14,29 +15,48 @@ def create_target_function():
     '''Create a function which classifies points according to the ideal target function'''
     two_points = create_random_df(2)
 
-    w_y = two_points[1][0] - two_points[1][1]
-    w_x = two_points[0][1] - two_points[0][0]
-    w_0 = two_points[0][0] * (two_points[1][0] + two_points[1][1]) - two_points[1][0] * (two_points[0][0] + two_points[0][1])
+    w_0 = two_points['x2'][0] *  two_points['x1'][1] - two_points['x1'][0] * two_points['x2'][1]
+    w_1 = two_points['x2'][1] - two_points['x2'][0]
+    w_2 = two_points['x1'][0] - two_points['x1'][1]
+    soln_parameters = pandas.Series([w_0, w_1, w_2])
 
-    soln_parameters = pandas.Series([w_0, w_x, w_y])
+    # def target_function(point):
+    #     '''target function'''
+    #     return apply_perceptron(soln_parameters, point)
 
-    def target_function(point):
-        '''target function'''
-        return apply_perceptron(soln_parameters, point)
-
-    return target_function, soln_parameters
+    return soln_parameters
 
 def create_random_df(count):
     '''random panda series valid for 2 dimensions'''
     number_of_dimensions = 2
-    return pandas.DataFrame(numpy.random.uniform(-1,1,(count,number_of_dimensions)))
+    columns = list(map(lambda num: 'x'+str(num + 1), range(number_of_dimensions)))  # ['x1','x2']
+    return pandas.DataFrame(numpy.random.uniform(-1,1,(count,number_of_dimensions)), columns=columns)
+
+def apply_parms(df, parms):
+    return list(map(sign, numpy.dot(df, parms)))
 
 def create_known_data_points(number_of_points):
     '''data_points with solution list and also the parameters of the soln'''
-    target_function, soln_parameters = create_target_function()
+    soln_parameters = create_target_function()
     known_points = create_random_df(number_of_points)
-    known_points['soln'] = map(target_function, known_points)
+    known_points.insert(0,'x0',1)       #constant factor
+
+    # print(known_points.shape)
+    # print(known_points)
+    # print(soln_parameters.shape)
+
+    #### Do not work because x0,x1, x2 do not match index 0,1,2
+    # print(known_points.dot(soln_parameters))
+    # known_points['soln'] = soln_parameters.dot(known_points.T)
+    # soln = soln_parameters.T.dot(known_points.T)
+    #######################################
+
+    known_points['soln'] = list(map(sign, numpy.dot(known_points, soln_parameters)))
+
     return known_points, soln_parameters
+
+def get_input_points(df):
+    return df.filter(regex='^x',axis=1)
 
 def apply_perceptron(parameters, point):
     return sign(parameters.dot(point))
@@ -78,29 +98,42 @@ def main():
     known_data_points, soln_parameters = create_known_data_points(100)
     # print(known_data_points, soln_parameters)
 
-    parms = [0,0,0]
+    # print(list(get_input_points(known_data_points).columns))
+    parms = pandas.Series(0, index=get_input_points(known_data_points).columns)
+    # print(parms)
     count = 0
-    # unsolved_points_solns = known_data_points
-    perceptron = functools.partial(apply_perceptron, parms)
-    unsolved_points_solns = [point_soln for point_soln in known_data_points if perceptron(point_soln[0]) != point_soln[1]] 
-    while len(unsolved_points_solns) > 0:
-        random_unsolved_point = random.choice(unsolved_points_solns)
-        parms[0] = parms[0] + random_unsolved_point[1] * random_unsolved_point[0].y
-        parms[1] = parms[1] + random_unsolved_point[1] * random_unsolved_point[0].x
-        parms[2] = parms[2] + random_unsolved_point[1]
-        perceptron = functools.partial(apply_perceptron, parms)
-        unsolved_points_solns = [point_soln for point_soln in known_data_points if perceptron(point_soln[0]) != point_soln[1]]
-        count += 1
+    known_data_points['partial_soln'] = apply_parms(get_input_points(known_data_points), parms)
 
-    print(count)
-    print(normalize_parameters(parms))
-    print(normalize_parameters(soln_parameters))
-    print(calculate_accuracy(soln_parameters,parms,1000))
+    candidate_df = known_data_points[known_data_points['soln']!= known_data_points['partial_soln']]
+    # print(candidate_df)
+    # print()
+
+    while len(candidate_df) > 0:
+        random_unsolved_point = candidate_df.sample(axis=0)
+        # print(random_unsolved_point)
+        parms = parms + random_unsolved_point['soln'].iloc[0]*get_input_points(random_unsolved_point).iloc[0]
+        # print(parms)
+        # print(type(parms))
+        known_data_points['partial_soln'] = apply_parms(get_input_points(known_data_points), parms)
+        candidate_df = known_data_points[known_data_points['soln']!= known_data_points['partial_soln']]
+        count += 1
+        # print(candidate_df)
+        # break
+
+
+    # print(count)
+    # print(normalize_parameters(parms))
+    # print(normalize_parameters(soln_parameters))
+    # print(calculate_accuracy(soln_parameters,parms,1000))
     # print("soln_parameters")
     # print_points(soln_parameters, known_data_points)
     # print("pla solution")
     # print_points(parms, known_data_points)
-
+    
+    # print('known_data_points:\n', known_data_points, '\n')
+    print('soln_parameters:\n', soln_parameters, '\n')
+    print('parms:\n', parms, '\n')
+    # print(apply_parms(get_input_points(known_data_points), parms))
 
 if __name__ == '__main__':
     main()
